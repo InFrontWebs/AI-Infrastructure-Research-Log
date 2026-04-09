@@ -1,0 +1,40 @@
+name: Daily AI Research Log Update
+
+on:
+  schedule:
+    - cron: "0 8 * * *"   # Daily at 08:00 UTC
+  workflow_dispatch:        # Manual trigger from Actions tab
+
+jobs:
+  update-log:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write       # Required to commit and push logs.md
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Fetch AI news and update logs.md
+        run: python scripts/fetch_news.py
+
+      - name: Commit and push updated log
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add logs.md
+          if git diff --staged --quiet; then
+            echo "No changes to commit — no relevant stories found today."
+          else
+            git commit -m "chore: daily AI research log update $(date -u '+%Y-%m-%d')"
+            git push
+          fi
